@@ -29,16 +29,13 @@ subsynset_checker::synset::synset(subsynset_checker * sc,
     sc->wnids.push_back(buf);
   }
   memcpy(this->wnid, wnid, size_wnid);
-  cout << "synset id : " << synset_id << endl;
+  //cout << "synset id : " << synset_id << endl;
 }
 
 subsynset_checker::synset::synset(subsynset_checker * sc): pos(START), sc(sc){
 }
 
 void subsynset_checker::synset::expand(){
-#ifdef DEBUG_SC
-  show_dmsg sdmsg(__PRETTY_FUNCTION__);
-#endif
   if(is_duplicate)
     return;
   
@@ -51,17 +48,11 @@ void subsynset_checker::synset::expand(){
     if(is_a.eof())
       break;
     char * ptok = strtok(buf, " ");
-#ifdef DEBUG_AC
-    //cout << "comparing " << ptok
-    //	 << " with " << wnid << endl;
-#endif
+
     if(strcmp(ptok, wnid) == 0){
       ptok = strtok(NULL, " ");
       if(strcmp(ptok, wnid) != 0){
 	subsynsets.push_back(new synset(sc, ptok, MIDDLE));
-#ifdef DEBUG_AC
-	cout << "subclass : " << ptok << endl;
-#endif
 
       }
     }
@@ -79,22 +70,28 @@ void subsynset_checker::synset::expand(){
   }
 }
 
-subsynset_checker::subsynset_checker(ifstream &is_a, const char *wnid):prev_check(true){
+const char * subsynset_checker::get_label(){
+  return label;
+}
+
+const char * subsynset_checker::get_wnid(){
+  return wnid;
+}
+
+subsynset_checker::subsynset_checker(ifstream &is_a, const char *wnid, const char *label):prev_check(true){
   this->is_a = &is_a;
 
   memcpy(this->wnid, wnid, size_wnid);
+  memcpy(this->label, label, size_label);
   memset(prev_wnid, 0, size_wnid);
 }
 
 void subsynset_checker::expand(){
-#ifdef DEBUG_AL
-  show_dmsg sdmsg(__PRETTY_FUNCTION__);
-#endif
     
     synset s(this, wnid, synset::e_pos::START);
     s.expand();
     
-#ifdef DEBUG_AL
+#ifdef DEBUG_ASSIGN_LABEL
     int pos_wnids = 0;
     char fname[1024];
     sprintf(fname, "subsynsets_%s.txt", wnid);

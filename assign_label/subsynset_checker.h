@@ -1,14 +1,16 @@
 #ifndef _SUBSYNSET_CHECKER_
 #define _SUBSYNSET_CHECKER_
 const static int size_wnid= 10;
+const static int size_label = 1024;
 
 class subsynset_checker{
 public:
-  subsynset_checker(ifstream &is_a, const char *wnid);
+  subsynset_checker(ifstream &is_a, const char *wnid, const char *label);
  
   void expand();
-  void get_label(const int wnid);
-  
+  //void get_label(const int wnid);
+  const char * get_label();
+  const char * get_wnid();
   bool is_subsynset(const char * wnid);
   //bool init(char * name_is_a, char * name_list_artifacts);
   
@@ -30,7 +32,6 @@ private:
     subsynset_checker * sc;
 
     char wnid[size_wnid];
-
     vector<synset*> subsynsets;
 
   };
@@ -41,6 +42,7 @@ private:
   
   char wnid[size_wnid];
   char prev_wnid[size_wnid];
+  char label[size_label];
   
   ifstream *is_a;
   ifstream list_artifacts;

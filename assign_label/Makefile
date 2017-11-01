@@ -1,22 +1,22 @@
-DEBUG_AL = y
-AL_SRCS = assign_label.cpp subsynset_checker.cpp
-SD_SRCS = subsynsets_debugger.cpp
+DEBUG_ASSIGN_LABEL = y
+ASSIGN_LABEL_SRCS = assign_label.cpp subsynset_checker.cpp
+SUBSYNSET_DEBUGGER_SRCS = subsynset_debugger.cpp
 
 CXX_FLAGS = -std=c++11
-AL_OBJS = $(addsuffix .o, $(basename $(AL_SRCS)))
-SD_OBJS = $(addsuffix .o, $(basename $(SD_SRCS)))
+ASSIGN_LABEL_OBJS = $(addsuffix .o, $(basename $(ASSIGN_LABEL_SRCS)))
+SUBSYNSET_DEBUGGER_OBJS = $(addsuffix .o, $(basename $(SUBSYNSET_DEBUGGER_SRCS)))
 
-ifeq ($(DEBUG_AL),y)
-	CXX_FLAGS += -DDEBUG_AL
+ifeq ($(DEBUG_ASSIGN_LABEL),y)
+	CXX_FLAGS += -DDEBUG_ASSIGN_LABEL
 endif
 
 all: assign_label subsynsets_debugger
 
-assign_label: $(AL_OBJS)
-	g++ $(AL_OBJS) -o assign_label $(CXX_FLAGS)
+assign_label: $(ASSIGN_LABEL_OBJS)
+	g++ $(ASSIGN_LABEL_OBJS) -o assign_label $(CXX_FLAGS)
 
-subsynsets_debugger: $(SD_OBJS)
-	g++ $(SD_SRCS) -o subsynsets_debugger $(CXX_FLAGS)
+subsynset_debugger: $(SUBSYNSET_DEBUGGER_OBJS)
+	g++ $(SUBSYNSET_DEBUGGER_SRCS) -o subsynset_debugger $(CXX_FLAGS)
 
 %.o: %.cpp
 	g++ $(CXX_FLAGS) -o $@ -c $^
@@ -25,4 +25,4 @@ subsynsets_debugger: $(SD_OBJS)
 clean:
 	rm -f *.o
 	rm -f assign_label
-	rm -f subsynsets_debugger
+	rm -f subsynset_debugger
