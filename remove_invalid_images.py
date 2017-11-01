@@ -3,32 +3,38 @@ import cv2
 import os
 import fnmatch
 import sys
+from PIL import Image
 
 if __name__ == '__main__':
-    root_dir = os.path.abspath('./')
     args = sys.argv
+
+    # for root_dir, dirs, files in os.walk(args[1]):
+    #     for file in files:
+    #         path=root_dir+'/'+file
+
+    #         if path.lower().endswith(('.png')):
+    #             print('{} is deleted.'.format(path))
+    #             os.remove(path)
+    #             continue
+
+    #         if abs_path.lower().endswith(('.gif')):
+    #             basename = os.path.splitext(path)[0]
+    #             cmd = 'convert -strip ' + path + ' ' + basename + '.jpg'
+    #             print(cmd)
+    #             os.system(cmd)
+    #             continue
 
     for root_dir, dirs, files in os.walk(args[1]):
         for file in files:
-            img = cv2.imread(file)
-            abs_path=root_dir+'/'+file
-
-            if abs_path.lower().endswith(('.png')):
-                print('{} is deleted.'.format(abs_path))
-                os.remove(abs_path)
-                continue
-
-            if abs_path.lower().endswith(('.gif')):
-                basename = os.path.splitext(abs_path)[0]
-                cmd = 'convert -strip ' + abs_path + ' ' + basename + '.jpg'
-                print(cmd)
-                os.system(cmd)
-                continue
-            #if fnmatch.fnmatch(file, '*.png'):
-            #    print('{} is deleted.'.format(file))
-
-            #if fnmatch.fnmatch(file, '*.')
-                    #os.remove(file)
-
-                #cv2.imshow('disp', img)
-                #cv2.waitKey(0)
+            path = root_dir+'/'+file
+            if path.lower().endswith(('.jpg')):
+                #print(path)
+                try:
+                    img = cv2.imread(path)
+                    cv2.imwrite(path, img)
+                except Exception as e:
+                    print('Exception is thrown.')
+                    print(e)
+                    print('removing ' + path)
+                    os.remove(path)
+                    
