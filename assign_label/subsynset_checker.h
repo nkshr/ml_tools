@@ -8,11 +8,9 @@ public:
   subsynset_checker(ifstream &is_a, const char *wnid, const char *label);
  
   void expand();
-  //void get_label(const int wnid);
   const char * get_label();
   const char * get_wnid();
-  bool is_subsynset(const char * wnid);
-  //bool init(char * name_is_a, char * name_list_artifacts);
+  bool is_subsynset(const char * wnid, const int max_depth = -1);
   
 private:
   class synset{

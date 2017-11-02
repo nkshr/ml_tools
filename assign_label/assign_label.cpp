@@ -9,11 +9,11 @@ using namespace std;
 #include "subsynset_checker.h"
 const char * prefix = "/home/ubuntu/ml/image/%09s/"; //"/mnt/hdd1/ml/%09s/";
 int main(int argc, char ** argv){
-  if(argc != 5){
+  if(argc != 6){
     cerr << "Invalid arguments" << endl;
     cerr << "Usage : " << endl;
     cerr << "\t./assign_label <is_a file> <map_wnids>"
-	 << "<list of source images> <list of labeled images>" << endl;
+	 << "<list of source images> <list of labeled images> <max depth>" << endl;
     return 1;
   }
 
@@ -21,8 +21,9 @@ int main(int argc, char ** argv){
   const char * fname_wnid_map = argv[2];
   const char * fname_src_images = argv[3];
   const char * fname_labeled_images = argv[4];
+  const int max_depth = atoi(argv[5]);
   const char * fname_log = "log_assign_label.txt";
-  
+ 
   //open files
   ifstream fis_a(fname_is_a, ifstream::binary);
   if(!fis_a.good()){
@@ -81,10 +82,10 @@ int main(int argc, char ** argv){
     while(true){
       if(it == checkers.end()){
 	flog << fname << " is omittetd." << endl;
-	flabeled_images << fname << " " << "other" << endl;
+	//flabeled_images << fname << " " << "other" << endl;
 	break;
       }
-      if((*it)->is_subsynset(wnid)){
+      if((*it)->is_subsynset(wnid, max_depth)){
 #ifdef DEBUG_ASSIGN_LABEL
 	cout << fname << " " << " is added to " << (*it)->get_label() << "." << endl;
 #endif

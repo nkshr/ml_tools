@@ -109,15 +109,17 @@ void subsynset_checker::expand(){
 }
   
 
-bool subsynset_checker::is_subsynset(const char * wnid){
+bool subsynset_checker::is_subsynset(const char * wnid, const int max_depth){
   if(strcmp(wnid, prev_wnid) == 0){
     return prev_check;
   }
 
   bool check = false;
-  for(vector<char*>::iterator it = wnids.begin();
-      it != wnids.end(); ++it){
-    if(strcmp(wnid, *it) == 0){
+  int imax = max_depth < 0 ? wnids.size() : max_depth;
+  //for(vector<char*>::iterator it = wnids.begin();
+  //    it != wnids.end(); ++it){
+  for(int i = 0; i < imax; ++i){
+    if(strcmp(wnid, wnids[i]) == 0){
       check = true;
       break;
     }
