@@ -29,4 +29,5 @@ if __name__ == '__main__':
     print(files)
     for file in files:
         cmd = join(dirname(argv[0]), 'blur_image')
-        subprocess.call([cmd, file, file, str(FLAGS.ksize), str(FLAGS.sigma)])
+        file_path = join(flags_image_dir, file)
+        subprocess.call([cmd, file_path, file_path, str(FLAGS.ksize), str(FLAGS.sigma)])
