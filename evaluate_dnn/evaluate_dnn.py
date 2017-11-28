@@ -96,6 +96,10 @@ def main():
         default = './labels.txt',
         help = ''
     )
+    parser.add_argument(
+        '--debug',
+        action = 'store_true',
+    )
     
     flags, unparsed = parser.parse_known_args()
 
