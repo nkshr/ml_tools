@@ -5,31 +5,35 @@ import argparse
 if __name__=='__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        '--image',
+        '-i',
+        "--image",
         type = str,
         default = './',
         help = 'Image to be cropped.'
     )
     parser.add_argument(
-        '--x',
+        '-x',
+        "--start_x",
         type=int,
         default=0,
         help='x start point of roi'
     )
     parser.add_argument(
-        '--y',
+        '-y',
+        "--start_y",
         type=int,
         default=0,
         help='y start point of roi'
     )
     parser.add_argument(
-        '--w',
+        '-w',
+        "--width",
         type=int,
         default=0,
         help='roi width'
     )
     parser.add_argument(
-        '--h',
+        "--height",
         type=int,
         default=100,
         help='roi height'
