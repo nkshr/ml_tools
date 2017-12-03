@@ -35,7 +35,7 @@ class sub_eval_info:
         self.evaluated = False
         
     def __str__(self):
-        return "class_id : {}\n\tlabel : {}\n\ttop1_rate : {}\n\ttop5_rate : {}\n".format(self.class_id, self.label, self.top1_rate, self.top5_rate)
+        return "class_id : {}\n label : {}\n num_images : {}\n top1_rate : {}\n top5_rate : {}\n".format(self.class_id, self.label, len(self.probs), self.top1_rate, self.top5_rate)
 
     def calc_top1_rate(self):
         if (len(self.images)) == 0:
@@ -65,13 +65,15 @@ class eval_info:
             labels = [line.replace('\n', '')  for line in f.readlines()];
 
         self.__sub_eval_info_list = []
-
+        self.top1_rate = 0
+        self.top5_rate = 0
+        
         class_id = 0
         for label in labels:
-            sei = sub_eval_info()
-            sei.label = label
-            sei.class_id = class_id
-            self.__sub_eval_info_list.append(sei)
+            seinfo = sub_eval_info()
+            seinfo.label = label
+            seinfo.class_id = class_id
+            self.__seinfo_list.append(seinfo)
             class_id += 1
             
         with open(labeled_images_file, 'r') as f:
@@ -80,14 +82,48 @@ class eval_info:
                 idx = int(toks[1].replace('\n', ''))
                 image = toks[0]
                 #print(image, str(idx))
-                self.__sub_eval_info_list[idx].images.append(image)
+                self.__seinfo_list[idx].images.append(image)
 
     def get_class_count(self):
-        return len(self.__sub_eval_info_list)
+        return len(self.__seval_info_list)
 
     def get_sub_eval_info(self, idx):
-        return self.__sub_eval_info_list[idx]
-    
+        return self.__seval_info_list[idx]
+
+    def __str__(self):
+        text = ''
+        for seinfo in __seinfo_list = []:
+            text += seinfo:
+
+        return seinfo:
+
+    def calc_top5_rate(self):
+        num_correct_preds = 0
+        num_images = 0
+        for seinfo in __seval_info_list = []:
+            if seinfo.probs:
+                for rank in seinfo.ranks:
+                    num_images += 1
+                    if seinfo.rank < 5:
+                        num_correct_preds += 1
+
+        self.top5_rate = num_correct_preds / num_images
+
+    def calc_top1_rate(self):
+        num_correct_preds = 0
+        num_images = 0
+        for seinfo in __sub_eval_info_list = []:
+            if seinfo.probs:
+                for rank in seinfo.ranks:
+                    num_images += 1
+                    if seinfo.rank == 0:
+                        num_correct_preds += 1
+
+        self.top1_rate = num_correct_preds /num_images
+
+    def __iter__(self):
+        return self.__seinfo_list        
+        
 def load_model_graph(model_path):
     with tf.Graph().as_default() as graph:
         with gfile.FastGFile(model_path, 'rb') as f:
@@ -97,7 +133,7 @@ def load_model_graph(model_path):
             
     return graph
 
-def add_jpeg_decoding(input_width, input_height, input_depth, input_mean,
+def create_jpeg_decoding(input_width, input_height, input_depth, input_mean,
                       input_std):
   """Adds operations that perform JPEG decoding and resizing to the graph..
 
@@ -126,26 +162,11 @@ def add_jpeg_decoding(input_width, input_height, input_depth, input_mean,
 
   return jpeg_data, mul_image
 
-def add_evaluation_step(result_tensor, ground_truth_tensor):
-  """Inserts the operations we need to evaluate the accuracy of our results.
-
-  Args:
-    result_tensor: The new final node that produces results.
-    ground_truth_tensor: The node we feed ground truth data
-    into.
-
-  Returns:
-    Tuple of (evaluation step, prediction).
-  """
-  with tf.name_scope('accuracy'):
-    with tf.name_scope('correct_prediction'):
-      prediction = tf.argmax(result_tensor, 1)
-      correct_prediction = tf.equal(
-          prediction, tf.argmax(ground_truth_tensor, 1))
-    with tf.name_scope('accuracy'):
-      evaluation_step = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
-  #tf.summary.scalar('accuracy', evaluation_step)
-  return evaluation_step, prediction
+def create_rgb_to_grayscale_converter():
+    rgb_data_tensor = tf.placeholder(tf.float32,, shape = [None, None, None, 3])
+    gray_data_tensor = tf.image.rgb_to_grayscale(rgb_data_tensor)
+    expanded_gray_data_tensor = tf.image.grayscale_to_rgb(gray_data_tensor)
+    return rgb_data_tensor, expanded_gray_data_tensor
 
 def read_tensor_from_image_file(file_name, input_height=299, input_width=299,
 				input_mean=0, input_std=255):
@@ -182,7 +203,7 @@ def main():
         input_tensor = graph.get_tensor_by_name('import/'+flags.input_tensor_name)
         output_tensor = graph.get_tensor_by_name('import/'+flags.output_tensor_name)
 
-        jpeg_data_tensor, decoded_data_tensor = add_jpeg_decoding(
+        jpeg_data_tensor, decoded_data_tensor = create_jpeg_decoding(
             flags.input_width, flags.input_height,
             flags.input_depth, flags.input_mean,
             flags.input_std
@@ -194,8 +215,6 @@ def main():
             name = 'GroundTruthInput'
         )            
         
-        evaluation_step, prediction = add_evaluation_step(output_tensor, ground_truth_tensor)
-
         if not flags.valid_class_ids:
             class_ids = range(einfo.get_class_count())
         else:
