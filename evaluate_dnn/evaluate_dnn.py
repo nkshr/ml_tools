@@ -20,110 +20,10 @@ from tensorflow.python.framework import tensor_shape
 from tensorflow.python.platform import gfile
 from tensorflow.python.util import compat
 
+import cv2
+import csv
+from eval_info import eval_info
 
-MAX_NUM_IMAGES_PER_CLASS = 2 ** 27 - 1  # ~134M
-
-class sub_eval_info:
-    def __init__(self):
-        self.images=[]
-        self.ranks=[]
-        self.probs=[]
-        self.label = ""
-        self.class_id = 0
-        self.top1_rate = 0
-        self.top5_rate = 0
-        self.evaluated = False
-        
-    def __str__(self):
-        return "class_id : {}\n label : {}\n num_images : {}\n top1_rate : {}\n top5_rate : {}\n".format(self.class_id, self.label, len(self.probs), self.top1_rate, self.top5_rate)
-
-    def calc_top1_rate(self):
-        if (len(self.images)) == 0:
-            self.top1_rate = 0
-            return
-        
-        num_top1 = 0
-        for rank in self.ranks:
-            if rank == 0:
-                num_top1 += 1
-        self.top1_rate = num_top1 / len(self.images)
-
-    def calc_top5_rate(self):
-        if (len(self.images)) == 0:
-            self.top5_rate = 0
-            return
-        
-        num_top5 = 0
-        for rank in self.ranks:
-            if rank < 5:
-                num_top5 += 1
-        self.top5_rate = num_top5 / len(self.images)
-
-class eval_info:
-    def __init__(self, labeled_images_file, labels_file):
-        with open(labels_file, 'r') as f:
-            labels = [line.replace('\n', '')  for line in f.readlines()];
-
-        self.__sub_eval_info_list = []
-        self.top1_rate = 0
-        self.top5_rate = 0
-        
-        class_id = 0
-        for label in labels:
-            seinfo = sub_eval_info()
-            seinfo.label = label
-            seinfo.class_id = class_id
-            self.__seinfo_list.append(seinfo)
-            class_id += 1
-            
-        with open(labeled_images_file, 'r') as f:
-            for line in f.readlines():
-                toks = line.split(sep=" ", maxsplit=1)
-                idx = int(toks[1].replace('\n', ''))
-                image = toks[0]
-                #print(image, str(idx))
-                self.__seinfo_list[idx].images.append(image)
-
-    def get_class_count(self):
-        return len(self.__seval_info_list)
-
-    def get_sub_eval_info(self, idx):
-        return self.__seval_info_list[idx]
-
-    def __str__(self):
-        text = ''
-        for seinfo in __seinfo_list = []:
-            text += seinfo:
-
-        return seinfo:
-
-    def calc_top5_rate(self):
-        num_correct_preds = 0
-        num_images = 0
-        for seinfo in __seval_info_list = []:
-            if seinfo.probs:
-                for rank in seinfo.ranks:
-                    num_images += 1
-                    if seinfo.rank < 5:
-                        num_correct_preds += 1
-
-        self.top5_rate = num_correct_preds / num_images
-
-    def calc_top1_rate(self):
-        num_correct_preds = 0
-        num_images = 0
-        for seinfo in __sub_eval_info_list = []:
-            if seinfo.probs:
-                for rank in seinfo.ranks:
-                    num_images += 1
-                    if seinfo.rank == 0:
-                        num_correct_preds += 1
-
-        self.top1_rate = num_correct_preds /num_images
-
-    def __iter__(self):
-        return self.__seinfo_list        
-        
 def load_model_graph(model_path):
     with tf.Graph().as_default() as graph:
         with gfile.FastGFile(model_path, 'rb') as f:
@@ -133,8 +33,8 @@ def load_model_graph(model_path):
             
     return graph
 
-def create_jpeg_decoding(input_width, input_height, input_depth, input_mean,
-                      input_std):
+def create_jpeg_decoder(input_width, input_height, input_depth, input_mean,
+                         input_std):
   """Adds operations that perform JPEG decoding and resizing to the graph..
 
   Args:
@@ -160,10 +60,26 @@ def create_jpeg_decoding(input_width, input_height, input_depth, input_mean,
   offset_image = tf.subtract(resized_image, input_mean)
   mul_image = tf.multiply(offset_image, 1.0 / input_std)
 
-  return jpeg_data, mul_image
+  return jpeg_data, mul_image, decoded_image
+    
+def create_jpeg_grayscale_decoder(input_width, input_height,  input_depth, input_mean,
+                             input_std):
+    jpeg_data = tf.placeholder(tf.string, name='DecodeJPGInput')
+    decoded_image = tf.image.decode_jpeg(jpeg_data, channels=1)
+    expanded_decoded_image = tf.image.grayscale_to_rgb(decoded_image)
+    decoded_image_as_float = tf.cast(expanded_decoded_image, dtype=tf.float32)
+    decoded_image_4d = tf.expand_dims(decoded_image_as_float, 0)
+    resize_shape = tf.stack([input_height, input_width])
+    resize_shape_as_int = tf.cast(resize_shape, dtype=tf.int32)
+    resized_image = tf.image.resize_bilinear(decoded_image_4d,
+                                             resize_shape_as_int)
+    offset_image = tf.subtract(resized_image, input_mean)
+    mul_image = tf.multiply(offset_image, 1.0/ input_std)
+
+    return jpeg_data, mul_image, decoded_image
 
 def create_rgb_to_grayscale_converter():
-    rgb_data_tensor = tf.placeholder(tf.float32,, shape = [None, None, None, 3])
+    rgb_data_tensor = tf.placeholder(tf.float32, shape = [None, None, None, 3])
     gray_data_tensor = tf.image.rgb_to_grayscale(rgb_data_tensor)
     expanded_gray_data_tensor = tf.image.grayscale_to_rgb(gray_data_tensor)
     return rgb_data_tensor, expanded_gray_data_tensor
@@ -195,7 +111,7 @@ def read_tensor_from_image_file(file_name, input_height=299, input_width=299,
 
 
 def main():
-    einfo = eval_info(flags.labeled_images, flags.labels)
+    einfo = eval_info.eval_info(flags.labeled_images, flags.labels, num_images = flags.num_images)
     
     graph = load_model_graph(flags.model_path)
 
@@ -203,31 +119,39 @@ def main():
         input_tensor = graph.get_tensor_by_name('import/'+flags.input_tensor_name)
         output_tensor = graph.get_tensor_by_name('import/'+flags.output_tensor_name)
 
-        jpeg_data_tensor, decoded_data_tensor = create_jpeg_decoding(
-            flags.input_width, flags.input_height,
-            flags.input_depth, flags.input_mean,
-            flags.input_std
-        )
-
+        if flags.preprocess == 'grayscale':
+            jpeg_data_tensor, decoded_data_tensor, raw_data_tensor = create_jpeg_grayscale_decoder(
+                flags.input_width, flags.input_height,
+                flags.input_depth, flags.input_mean,
+                flags.input_std
+            )
+            print('grayscale conversion was choosed as preprocess.')
+        else:
+            jpeg_data_tensor, decoded_data_tensor, raw_data_tensor = create_jpeg_decoder(
+                flags.input_width, flags.input_height,
+                flags.input_depth, flags.input_mean,
+                flags.input_std
+            )
+            print('No preprocess was choosed.')
+        
         ground_truth_tensor = tf.placeholder(
             tf.float32,
             [None, einfo.get_class_count()],
             name = 'GroundTruthInput'
         )            
         
-        if not flags.valid_class_ids:
+        if not flags.eval_classes:
             class_ids = range(einfo.get_class_count())
         else:
-            class_ids = flags.valid_class_ids
+            class_ids = flags.eval_classes
             
         for class_id in class_ids:
-            seinfo= einfo.get_sub_eval_info(class_id)
-            num_samples = int(flags.eval_rate * len(seinfo.images))
-            if num_samples < 1:
-                print('class', class_id, 'doesn\'t contain a image.')
-                continue
-            for image_id in range(num_samples):
-                image_path = os.path.join(flags.image_dir, seinfo.images[image_id])
+            print('class', class_id, 'is processed.')
+            cinfo= einfo.get_class_info(class_id)
+                                
+            for image_id in range(len(cinfo.iinfo_list)):
+                iinfo = cinfo.iinfo_list[image_id]
+                image_path = os.path.join(flags.image_dir, iinfo.name)
                 if flags.debug:
                     print('Evaluate', image_path, class_id)
 
@@ -235,6 +159,14 @@ def main():
                     print(image_path, "doesn't exist.")
                     
                 jpeg_data = tf.gfile.FastGFile(image_path, 'rb').read()
+                if flags.debug:
+                    raw_data = sess.run(raw_data_tensor,
+                             feed_dict={jpeg_data_tensor : jpeg_data})
+                    if flags.preprocess == 'grayscale':
+                        cv2.imwrite('test.png', raw_data)
+                    else:
+                        cv2.imwrite('test.png', cv2.cvtColor(raw_data, cv2.COLOR_RGB2BGR))
+                        
                 resized_data = sess.run(decoded_data_tensor,
                                        feed_dict={jpeg_data_tensor : jpeg_data})
                             
@@ -244,33 +176,37 @@ def main():
 
                 results = np.squeeze(results)
                 prob = results[class_id]
-                seinfo.probs.append(prob)
+                iinfo.prob = prob
                 
                 sorted_indexes = results.argsort()[::-1]
                 for i in range(len(sorted_indexes)):
                     if sorted_indexes[i] == class_id:
-                        seinfo.ranks.append(i)
+                        iinfo.rank = i
                         
                 if flags.debug:
-                    print('Result :', image_path, prob)
+                    print('Result :', image_path, iinfo.rank, iinfo.prob)
 
-            
-            seinfo.calc_top1_rate()
-            seinfo.calc_top5_rate()
-            seinfo.evaluated = True
-            
-    if flags.debug:
-        with open(flags.operations, 'w') as f:
-            for op in graph.get_operations():
-                f.write(op.name+'\n')
+                for i in range(5):
+                    tmp_cid = sorted_indexes[i]
+                    prob = results[tmp_cid]
+                    iinfo.top5_labels.append((tmp_cid, prob))
+                    
+            cinfo.calc_top1_rate()
+            cinfo.calc_top5_rate()
 
+    operations_path = os.path.join(flags.result_dir, 'operations.txt')
+    with open(operations_path, 'w') as f:
+        for op in graph.get_operations():
+            f.write(op.name+'\n')
 
-    if flags.debug:
-        for seinfo_idx in range(einfo.get_class_count()):
-            seinfo = einfo.get_sub_eval_info(seinfo_idx)
-            if seinfo.evaluated:
-                print(seinfo)
-        
+    einfo.calc_top1_rate()
+    einfo.calc_top5_rate()
+    einfo.calc_top1_rate_rank()
+    einfo.calc_top5_rate_rank()
+    #einfo.sort_by_top1_rate()
+
+    einfo.write(flags.result_dir)
+                
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -323,6 +259,7 @@ if __name__ == '__main__':
     )
     parser.add_argument(
         '--input_depth',
+        type = int, 
         default = 3
     )
     parser.add_argument(
@@ -334,19 +271,29 @@ if __name__ == '__main__':
         default = 255
     )
     parser.add_argument(
-        '--operations',
-        default = 'operations.txt'
-    )
-    parser.add_argument(
-        '--eval_rate',
-        type = float,
-        default = 1.0
-    )
-    parser.add_argument(
-        '--valid_class_ids',
+        '--eval_classes',
         nargs = '*',
-        type = int
+        type = int,
+        help = 'If eval_classes are not  specified, all classes are evaluated.Otherwise only specified classes are evaluated.'
     )
+    parser.add_argument(
+        '--preprocess',
+        type = str,
+        default = None,
+        help = 'if preprocess is needed, choose \"grayscale\"or \"blur\".'
+    )
+    parser.add_argument(
+        '--num_images',
+        type = int,
+        default = -1,
+        help = 'Maximum number of images to be evaluated per class.\nIf not specified, all images are evaluated.'
+    )
+    parser.add_argument(
+        '--result_dir',
+        type = str,
+        default = './result'
+    )
+    
     flags, unparsed = parser.parse_known_args()
 
     main()

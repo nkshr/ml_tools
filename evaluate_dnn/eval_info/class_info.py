@@ -1,5 +1,7 @@
 from . import image_info
 
+import csv
+
 class class_info:
     def __init__(self):
         self.iinfo_list = []
@@ -62,3 +64,12 @@ class class_info:
         sorted_indexes = np.argsort(ranks)[::-1]
         for rank in range(len(sorted_indexes)):
             self.iinfo_list[sorted_indexes[rank]].rank_in_class = rank
+
+    def read(self, fname):
+        with open(fname, 'r') as f:
+            reader = csv.reader(f)
+            
+            for row in reader:
+                print(row)
+            #header = next(reader)
+            

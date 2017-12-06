@@ -37,7 +37,12 @@ class eval_info:
             for cinfo in self.cinfo_list:
                 if len(cinfo.iinfo_list) != num_images:
                     print('class', cinfo.class_id, 'has too less images({}).'.format(len(cinfo.iinfo_list)))
-                
+
+    def __init__(self):
+        self.cinfo_list = []
+        self.top1_rate = 0
+        self.top5_rate = 0
+                    
     def get_class_count(self):
         return len(self.cinfo_list)
 
@@ -132,6 +137,9 @@ class eval_info:
         self.top5_rate = 0
 
         class_csvs = [class_csv for class_csv in os.listdir(dir) if class_csv.startswith('class')]
-        print(class_csvs)
-            
+
+        for class_csv in class_csvs:
+            cinfo = class_info.class_info()
+            cinfo.read(os.path.join(dir, class_csv))
+                        
     
