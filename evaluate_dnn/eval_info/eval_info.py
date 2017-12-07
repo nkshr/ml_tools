@@ -5,7 +5,7 @@ import numpy as np
 import os
 
 class eval_info:
-    def __init__(self, labeled_images_file, labels_file, num_images=111):
+    def init(self, labeled_images_file, labels_file, num_images):
         with open(labels_file, 'r') as f:
             labels = [line.replace('\n', '')  for line in f.readlines()];
 

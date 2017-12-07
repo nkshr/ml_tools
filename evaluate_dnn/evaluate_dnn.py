@@ -111,7 +111,8 @@ def read_tensor_from_image_file(file_name, input_height=299, input_width=299,
 
 
 def main():
-    einfo = eval_info.eval_info(flags.labeled_images, flags.labels, num_images = flags.num_images)
+    einfo = eval_info.eval_info()
+    einfo.init(flags.labeled_images, flags.labels, flags.num_images)
     
     graph = load_model_graph(flags.model_path)
 
