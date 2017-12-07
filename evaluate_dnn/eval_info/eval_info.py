@@ -51,13 +51,6 @@ class eval_info:
             if cinfo.class_id == class_id:
                 return cinfo
 
-    def __str__(self):
-        text = ''
-        for cinfo in self.cinfo_list:
-            text += str(cinfo)
-
-        return text
-
     def calc_top5_rate(self):
         num_correct_preds = 0
         num_images = 0
@@ -115,12 +108,20 @@ class eval_info:
             self.cinfo_list[sorted_indexes[rank]].top5_rate_rank = rank
 
     def write_summary(self, fname):
+        text = 'top1_rate,top5_rate\n'
+        f.write(text)
+        f.flush()
+        
+        text = '{},{}\n'.format(self.top1_rate, self.top5_rate)
+        f.write(text)
+        f.flush()
+
         text = 'class_id,label,num_images,top1_rate,top5_rate,top1_rate_rank,top5_rate_rank\n'
+        for cinfo in self.cinfo_list:
+            text += '{},\"{}\",{},{},{},{},{}\n'.format(cinfo.class_id, cinfo.label, len(cinfo.iinfo_list), cinfo.top1_rate, cinfo.top5_rate, cinfo.top1_rate_rank, cinfo.top5_rate_rank)
+
         with open(fname, 'w') as f:
             f.write(text)
-            f.flush()
-            
-            f.write(str(self))
             f.flush()
 
     def write(self, dir):
@@ -132,6 +133,13 @@ class eval_info:
             cinfo.write_detail(detail)
             
     def read(self, dir):
+        summary = os.path.join(dir, 'summary.csv')
+        with open(summary, 'r') as f:
+            lines = f.readlines()
+            toks = line[1].split(',')
+            self.top1_rate = toks[0]
+            self.top5_rate = toks[1]
+            
         self.cinfo_list = []
         self.top1_rate = 0
         self.top5_rate = 0
@@ -141,5 +149,12 @@ class eval_info:
         for class_csv in class_csvs:
             cinfo = class_info.class_info()
             cinfo.read(os.path.join(dir, class_csv))
-                        
     
+    def take_statistcs(self):
+        for cinfo in self.cinfo_list:
+            cinfo.take_statistics()
+        
+        self.calc_top1_rate()
+        self.calc_top5_rate()
+        self.calc_top1_rate_rank()
+        self.calc_top5_rate_rank()
