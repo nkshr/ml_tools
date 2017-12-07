@@ -13,9 +13,6 @@ class class_info:
         self.top5_rate_rank = -1
         self.evaluated = False
         
-    def __str__(self):
-        return '{},\"{}\",{},{},{},{},{}\n'.format(self.class_id, self.label, len(self.iinfo_list), self.top1_rate, self.top5_rate, self.top1_rate_rank, self.top5_rate_rank)
-
     def calc_top1_rate(self):
         if (len(self.iinfo_list)) == 0:
             self.top1_rate = 0
@@ -47,7 +44,19 @@ class class_info:
             f.flush()
 
             for iinfo in self.iinfo_list:
-                f.write(str(iinfo))
+                text = '{},{},{},{},'.format(
+                    self.name,
+                    self.rank,
+                    self.rank_in_class,
+                    self.prob
+                )
+                
+                for elem in self.top5:
+                    text += '{},{},'.format(elem[0], elem[1])
+
+                text += '\n'
+
+                f.write(text)
                 f.flush()
 
     def sort_by_prob(self):
@@ -56,7 +65,7 @@ class class_info:
         sorted_iinfo_list = [iinfo_list[index] for index in sorted_indexes]
         self.iinfo_list = sorted_info_list
 
-    def calc_prob_rank(self):
+    def calc_rank_in_class(self):
         ranks = []
         for iinfo in self.iinfo_list:
             ranks.append(iinfo.rank)
@@ -68,8 +77,29 @@ class class_info:
     def read(self, fname):
         with open(fname, 'r') as f:
             reader = csv.reader(f)
+
+            next(reader) #skip header
+
+            text = next(reader)
+            toks = text.split(',')
+            self.class_id = int(toks[0])
+            self.label = toks[1]
+            self.top1_rate = toks[2]
+            self.top5_rate = toks[3]
             
             for row in reader:
-                print(row)
-            #header = next(reader)
-            
+                toks  = row.split(',')
+                iinfo = image_info.image_info()
+                iinfo.name = toks[0]
+                iinfo.rank = toks[1]
+                iinfo.rank_in_class = toks[2]
+                iinfo.prob = toks[3]
+                for i in range(5):
+                    class_id = toks[4+i*2]
+                    prob = toks[5+i*2]
+                    iinfo.top5.append((class_id, prob))
+                    
+    def take_statistics(self):
+        self.calc_top1_rate()
+        self.calc_top5_rate()
+        self.calc_rank_in_class()

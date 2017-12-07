@@ -192,18 +192,13 @@ def main():
                     prob = results[tmp_cid]
                     iinfo.top5_labels.append((tmp_cid, prob))
                     
-            cinfo.calc_top1_rate()
-            cinfo.calc_top5_rate()
 
     operations_path = os.path.join(flags.result_dir, 'operations.txt')
     with open(operations_path, 'w') as f:
         for op in graph.get_operations():
             f.write(op.name+'\n')
 
-    einfo.calc_top1_rate()
-    einfo.calc_top5_rate()
-    einfo.calc_top1_rate_rank()
-    einfo.calc_top5_rate_rank()
+    einfo.take_statistcs()
     #einfo.sort_by_top1_rate()
 
     einfo.write(flags.result_dir)
