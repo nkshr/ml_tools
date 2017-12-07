@@ -1,6 +1,7 @@
 from . import image_info
 
 import csv
+import numpy as np
 
 class class_info:
     def __init__(self):
@@ -15,9 +16,13 @@ class class_info:
         
     def calc_top1_rate(self):
         if (len(self.iinfo_list)) == 0:
-            self.top1_rate = 0
+            self.top1_rate = -1
             return
-        
+
+        if iinfo_list[0].rank < -1:
+            self.top1_rate = -1
+            return 
+
         num_top1 = 0
         for iinfo in self.iinfo_list:
             if iinfo.rank == 0:
@@ -26,18 +31,36 @@ class class_info:
 
     def calc_top5_rate(self):
         if (len(self.iinfo_list)) == 0:
-            self.top5_rate = 0
+            self.top5_rate = -1
+            return
+
+        if iinfo_list[0].rank < -1:
+            self.top1_rate = -1
             return
         
         num_top5 = 0
         for iinfo in self.iinfo_list:
-            if iinfo.rank < 5:
+            if iinfo.rank < 5 and iinfo.rank > 0:
                 num_top5 += 1
         self.top5_rate = num_top5 / len(self.iinfo_list)
 
+    def calc_topk_rate(self, k):
+        if (len(self.iinfo_list)) == 0:
+            return -1
+
+        if self.iinfo_list[0].rank < 0:
+            return -1
+        
+        num_topk = 0
+        for iinfo in self.iinfo_list:
+            if iinfo.rank < k and iinfo.rank >= 0:
+                num_topk += 1
+
+        return num_topk / len(self.iinfo_list)
+
     def write_detail(self, fname):
-        text = 'class_id,label,top1_rate,top5_rate\n'
-        text += '{},\"{}\",{},{}\n'.format(self.class_id, self.label, self.top1_rate, self.top5_rate)
+        text = 'class_id,label,top1_rate,top5_rate,top1_rate_rank, top5_rate_rank\n'
+        text += '{},\"{}\",{},{},{},{}\n'.format(self.class_id, self.label, self.top1_rate, self.top5_rate, self.top1_rate_rank, self.top5_rate_rank)
         text += 'image,rank,rank_in_class,prob,1,,2,,3,,4,,5\n'
         with open(fname, 'w') as f:
             f.write(text)
@@ -45,14 +68,16 @@ class class_info:
 
             for iinfo in self.iinfo_list:
                 text = '{},{},{},{},'.format(
-                    self.name,
-                    self.rank,
-                    self.rank_in_class,
-                    self.prob
+                    iinfo.name,
+                    iinfo.rank,
+                    iinfo.rank_in_class,
+                    iinfo.prob
                 )
-                
-                for elem in self.top5:
-                    text += '{},{},'.format(elem[0], elem[1])
+
+                for i in range(5):
+                    class_id = iinfo.top5[i][0]
+                    prob = iinfo.top5[i][1]
+                    text += '{},{},'.format(class_id, prob)
 
                 text += '\n'
 
@@ -66,40 +91,46 @@ class class_info:
         self.iinfo_list = sorted_info_list
 
     def calc_rank_in_class(self):
-        ranks = []
+        probs = []
         for iinfo in self.iinfo_list:
-            ranks.append(iinfo.rank)
+            probs.append(iinfo.prob)
 
-        sorted_indexes = np.argsort(ranks)[::-1]
+        sorted_indexes = np.argsort(probs)[::-1]
         for rank in range(len(sorted_indexes)):
             self.iinfo_list[sorted_indexes[rank]].rank_in_class = rank
 
     def read(self, fname):
+        iinfo_list = []
+        
         with open(fname, 'r') as f:
             reader = csv.reader(f)
 
             next(reader) #skip header
 
-            text = next(reader)
-            toks = text.split(',')
+            toks = next(reader)
             self.class_id = int(toks[0])
             self.label = toks[1]
-            self.top1_rate = toks[2]
-            self.top5_rate = toks[3]
+            self.top1_rate = float(toks[2])
+            self.top5_rate = float(toks[3])
+            self.top1_rate_rank = int(toks[4])
+            self.top5_rate_rank = int(toks[5])
             
+            next(reader) #skip header
             for row in reader:
-                toks  = row.split(',')
                 iinfo = image_info.image_info()
-                iinfo.name = toks[0]
-                iinfo.rank = toks[1]
-                iinfo.rank_in_class = toks[2]
-                iinfo.prob = toks[3]
+                iinfo.name = row[0]
+                iinfo.rank = int(row[1])
+                iinfo.rank_in_class = int(row[2])
+                iinfo.prob = float(row[3])
                 for i in range(5):
-                    class_id = toks[4+i*2]
-                    prob = toks[5+i*2]
-                    iinfo.top5.append((class_id, prob))
-                    
+                    class_id = row[4+i*2]
+                    prob = row[5+i*2]
+                    iinfo.top5[i][0] = class_id
+                    iinfo.top5[i][1] = prob
+
+                self.iinfo_list.append(iinfo)
+                
     def take_statistics(self):
-        self.calc_top1_rate()
-        self.calc_top5_rate()
+        self.top1_rate = self.calc_topk_rate(1)
+        self.top5_rate = self.calc_topk_rate(5)
         self.calc_rank_in_class()

@@ -31,7 +31,12 @@ if __name__ == '__main__':
                 #print(path)
                 try:
                     img = cv2.imread(path)
-                    cv2.imwrite(path, img)
+                    if img is not None:
+                        pass
+                        #cv2.imwrite(path, img)
+                    else:
+                        os.remove(path)
+                        print('Remove', path)
                 except Exception as e:
                     print('Exception is thrown.')
                     print(e)

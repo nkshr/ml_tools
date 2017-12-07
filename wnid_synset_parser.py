@@ -3,7 +3,7 @@ from html.parser import HTMLParser
 
 prefix_wnid = "http://imagenet.stanford.edu/synset?wnid="
 url = "http://image-net.org/challenges/LSVRC/2014/browse-synsets"
-output = "wnid_synset_list.txt"
+output = "wnids.txt"
 
 class WNIDSynsetParser(HTMLParser):
     def __init__(self):
