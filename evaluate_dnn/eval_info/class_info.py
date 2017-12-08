@@ -58,10 +58,15 @@ class class_info:
 
         return num_topk / len(self.iinfo_list)
 
-    def write_detail(self, fname):
-        text = 'class_id,label,top1_rate,top5_rate,top1_rate_rank, top5_rate_rank\n'
-        text += '{},\"{}\",{},{},{},{}\n'.format(self.class_id, self.label, self.top1_rate, self.top5_rate, self.top1_rate_rank, self.top5_rate_rank)
+    def write(self, fname):
+        text = 'class_id,{}\n'.format(self.class_id)
+        text += 'label,\"{}\"\n'.format(self.label)
+        text += 'top1_rate,{}\n'.format(self.top1_rate)
+        text += 'top5_rate,{}\n'.format(self.top5_rate)
+        text += 'top1_rate_rank,{}\n'.format(self.top1_rate_rank)
+        text += 'top5_rate_rank,{}\n'.format(self.top5_rate_rank)
         text += 'image,rank,rank_in_class,prob,1,,2,,3,,4,,5\n'
+        
         with open(fname, 'w') as f:
             f.write(text)
             f.flush()
@@ -104,15 +109,22 @@ class class_info:
         
         with open(fname, 'r') as f:
             reader = csv.reader(f)
-
-            next(reader) #skip header
+            toks = next(reader)
+            self.class_id = int(toks[1])
 
             toks = next(reader)
-            self.class_id = int(toks[0])
             self.label = toks[1]
+
+            toks = next(reader)
             self.top1_rate = float(toks[2])
+
+            toks = next(reader)
             self.top5_rate = float(toks[3])
+
+            toks = next(reader)
             self.top1_rate_rank = int(toks[4])
+
+            toks = next(reader)
             self.top5_rate_rank = int(toks[5])
             
             next(reader) #skip header

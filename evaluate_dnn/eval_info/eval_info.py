@@ -128,10 +128,9 @@ class eval_info:
             self.cinfo_list[sorted_indexes[rank]].top5_rate_rank = rank
 
     def write_summary(self, fname):
+        text = 'top1_rate,{}\n'.format(self.top1_rate)
+        text += 'top5_rate,{}\n'.format(self.top5_rate)
         
-        text = 'top1_rate,top5_rate\n'
-        text += '{},{}\n'.format(self.top1_rate, self.top5_rate)
-
         text += 'class_id,label,num_images,top1_rate,top5_rate,top1_rate_rank,top5_rate_rank\n'
         for cinfo in self.cinfo_list:
             text += '{},\"{}\",{},{},{},{},{}\n'.format(cinfo.class_id, cinfo.label, len(cinfo.iinfo_list), cinfo.top1_rate, cinfo.top5_rate, cinfo.top1_rate_rank, cinfo.top5_rate_rank)
@@ -146,7 +145,7 @@ class eval_info:
 
         for cinfo in self:
             detail = os.path.join(dir, 'class{0:04d}.csv'.format(cinfo.class_id))
-            cinfo.write_detail(detail)
+            cinfo.write(detail)
 
     def read_summary(self, fname):
         self.top1_rate = 0
@@ -154,11 +153,10 @@ class eval_info:
 
         with open(fname, 'r') as f:
             reader  = csv.reader(f)
-
-            next(reader) #skip header
+            row = next(reader)
+            self.top1_rate = row[1]
 
             row = next(reader)
-            self.top1_rate = row[0]
             self.top5_rate = row[1]
 
     def read(self, dir):
