@@ -190,8 +190,8 @@ def main():
                 for i in range(5):
                     tmp_cid = sorted_indexes[i]
                     prob = results[tmp_cid]
-                    iinfo.top5[i][0] = tmp_cid
-                    iinfo.top5[i][1] = prob                    
+                    iinfo.top5[i]['class_id'] = tmp_cid
+                    iinfo.top5[i]['prob'] = prob                    
 
     operations_path = os.path.join(flags.result_dir, 'operations.txt')
     with open(operations_path, 'w') as f:
