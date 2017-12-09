@@ -5,6 +5,7 @@ import numpy as np
 import os
 import csv
 import sys
+import random
 
 class eval_info:
     def init(self, labeled_images_file, labels_file, num_images):

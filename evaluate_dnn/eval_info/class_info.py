@@ -80,8 +80,8 @@ class class_info:
                 )
 
                 for i in range(5):
-                    class_id = iinfo.top5[i][0]
-                    prob = iinfo.top5[i][1]
+                    class_id = iinfo.top5[i]['class_id']
+                    prob = iinfo.top5[i]['prob']
                     text += '{},{},'.format(class_id, prob)
 
                 text += '\n'
@@ -116,16 +116,16 @@ class class_info:
             self.label = toks[1]
 
             toks = next(reader)
-            self.top1_rate = float(toks[2])
+            self.top1_rate = float(toks[1])
 
             toks = next(reader)
-            self.top5_rate = float(toks[3])
+            self.top5_rate = float(toks[1])
 
             toks = next(reader)
-            self.top1_rate_rank = int(toks[4])
+            self.top1_rate_rank = int(toks[1])
 
             toks = next(reader)
-            self.top5_rate_rank = int(toks[5])
+            self.top5_rate_rank = int(toks[1])
             
             next(reader) #skip header
             for row in reader:
@@ -137,8 +137,8 @@ class class_info:
                 for i in range(5):
                     class_id = row[4+i*2]
                     prob = row[5+i*2]
-                    iinfo.top5[i][0] = class_id
-                    iinfo.top5[i][1] = prob
+                    iinfo.top5[i]['class_id'] = class_id
+                    iinfo.top5[i]['prob'] = prob
 
                 self.iinfo_list.append(iinfo)
                 
@@ -146,3 +146,20 @@ class class_info:
         self.top1_rate = self.calc_topk_rate(1)
         self.top5_rate = self.calc_topk_rate(5)
         self.calc_rank_in_class()
+
+    def calc_top5_mispreds(self):
+        mispred_votes = [0 for i in self.get_class_count()]
+        mispred_votes[self.class_id] = -1
+        
+        for iinfo in iinfo_list:
+            for rank in range(5):
+                class_id = iinfo.top5[rank]['class_id']
+                if class_id == self.class_id:
+                    break
+
+                point = 5 - class_id
+                mispred_votes[class_id] += point
+
+        sorted_indexes = np.argsort(mispred_votes)[::-1]
+        self.top5_mispreds = [sorted_indexes[rank] for rank in range(5)]
+        
